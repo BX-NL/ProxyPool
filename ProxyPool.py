@@ -197,6 +197,7 @@ def main(mian):
     else:
         print(' 请输入正确的数字')
         print()
+        main('已初始化')
 
 
 # 给其它程序留的接口,可获取指定数量的可用的代理IP
