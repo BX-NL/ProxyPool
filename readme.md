@@ -10,9 +10,11 @@
 
     import ProxyPool
         
-    #num为需要的IP数量，数字太大会炸
+    #num为需要的IP数量，留空默认值为1
+
+    #一般情况下1<=num<=10，不建议过大，容易出点奇奇怪怪的bug
         
-    proxies = ProxyPool.ProxyAPI(num=1)
+    proxies = ProxyPool.Proxy(num=1)
 
     print(proxies)
 

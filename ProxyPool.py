@@ -132,7 +132,7 @@ class ProxyPool:
         return states, time_used
 
 
-class Proxy():
+class Proxy:
     def SelectProxyPool(select):
         if select == '1':
             proxies = ProxyPool.GetProxy_89ip()
@@ -157,7 +157,7 @@ class Proxy():
             except:
                 print(proxies[i], "失败",)
 
-    def Proxy(select):
+    def SelectProxy(select):
         proxies = Proxy.SelectProxyPool(select)
         Proxy.TestProxy(proxies)
 
@@ -188,7 +188,7 @@ def main(mian):
     select = str(input(' 请选择代理池：'))
     print('=====================================================')
     if select == '1' or select == '2' or select == '3':
-        Proxy.Proxy(select)
+        Proxy.SelectProxy(select)
     elif select == '0':
         # 没想到吧，这个退出选项实际上是个重启按钮
         print(' 退出失败!')
@@ -201,20 +201,30 @@ def main(mian):
 
 
 # 给其它程序留的接口,可获取指定数量的可用的代理IP
-def ProxyAPI(num=1):
+def Proxy(num=1):
+    if num > 10:
+        num = 10
+    elif num <= 0:
+        num = 1
+    else:pass
     proxies = {}
-    proxies_1 = ProxyPool.GetProxy_89ip()
-    proxies_2 = ProxyPool.GetProxy_ip3366()
-    proxies_3 = ProxyPool.GetProxy_kuaidaili()
-    proxies_full = proxies_1+proxies_2+proxies_3
 
-    count = len(proxies_full)+1
-    for key in range(0, num):
-        rand = random.randint(1, count)
-        proxies[str(key)] = str(proxies_full[rand])
-        del proxies_full[rand]
-        num--1
-        count--1
+    ram = random.randint(1,4)
+    if ram == 1:
+        proxies_full = ProxyPool.GetProxy_89ip()
+    elif ram == 2:
+        proxies_full = ProxyPool.GetProxy_ip3366()
+    elif ram == 3:
+        proxies_full = ProxyPool.GetProxy_kuaidaili()
+    
+    key_list = random.sample(range(1,10+1), num)
+    # print(key_list)
+    
+    key_re = 0
+    for key in key_list:
+        # print(key)
+        proxies[str(key_re)] = proxies_full[key]
+        key_re+=1
     return proxies
 
 
