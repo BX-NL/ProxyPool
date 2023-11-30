@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 import os
+import re
 import csv
 import time
 import requests
@@ -27,15 +28,17 @@ headers = {
 # 设置网站状态states为全局变量
 global states
 
+
 class ProxyPool:
     # 从89ip获取代理IP
     def GetProxy_89ip():
         proxies = []
+        proxies_info = []
         # 默认抓取第1-2页的IP
         pages = 2
 
         for page in range(0, pages):
-            url = urls['1']+f'index_{str(page)}.html'
+            url = urls['1'] + f'index_{str(page)}.html'
             response = requests.get(url=url, headers=headers)
             soup = BeautifulSoup(response.content, "html.parser")
             table = soup.find("table", attrs={"class": "layui-table"})
@@ -46,7 +49,7 @@ class ProxyPool:
                 port = cells[1].text.strip()
 
                 # 89ip不显示协议,所以全部记为HTTP协议
-                proxy = 'http://'+ip+':'+port
+                proxy = 'http://' + ip + ':' + port
                 if __name__ == '__main__':
                     print(proxy)
 
@@ -60,7 +63,7 @@ class ProxyPool:
         pages = 1
 
         for page in range(0, pages):
-            url = urls['2']+f'?stype=1&page={str(page)}'
+            url = urls['2'] + f'?stype=1&page={str(page)}'
             response = requests.get(url=url, headers=headers)
             soup = BeautifulSoup(response.content, "html.parser")
             table = soup.find(
@@ -72,12 +75,15 @@ class ProxyPool:
                 port = cells[1].text.strip()
                 agreement = cells[3].text.strip()
 
+                # 位置：正则：_.+(?<=市)
+                # 运营商：正则：(?<=市).+
+
                 if agreement == 'HTTP':
-                    proxy = 'http://'+ip+':'+port
+                    proxy = 'http://' + ip + ':' + port
                 elif agreement == 'HTTPS':
-                    proxy = 'https://'+ip+':'+port
+                    proxy = 'https://' + ip + ':' + port
                 else:
-                    proxy = agreement+'://'+ip+':'+port
+                    proxy = agreement + '://' + ip + ':' + port
 
                 if __name__ == '__main__':
                     print(proxy)
@@ -88,14 +94,15 @@ class ProxyPool:
     def GetProxy_kuaidaili():
         proxies = []
         # 默认抓取第1-1页的IP，获取后续页码内容时报错，有空再修
-        pages = 1+1
+        pages = 1 + 1
 
         for page in range(1, pages):
-            url = urls['3']+f'intr/{str(page)}/'
+            url = urls['3'] + f'intr/{str(page)}/'
             response = requests.get(url=url, headers=headers)
             soup = BeautifulSoup(response.content, "html.parser")
             table = soup.find(
-                "table", attrs={"class": "table table-b table-bordered table-striped"})
+                "table",
+                attrs={"class": "table table-b table-bordered table-striped"})
 
             for row in table.tbody.find_all("tr"):
                 cells = row.find_all("td")
@@ -103,11 +110,11 @@ class ProxyPool:
                 port = cells[1].text.strip()
                 agreement = cells[3].text.strip()
                 if agreement == 'HTTP':
-                    proxy = 'http://'+ip+':'+port
+                    proxy = 'http://' + ip + ':' + port
                 elif agreement == 'HTTPS':
-                    proxy = 'https://'+ip+':'+port
+                    proxy = 'https://' + ip + ':' + port
                 else:
-                    proxy = agreement+'://'+ip+':'+port
+                    proxy = agreement + '://' + ip + ':' + port
 
                 if __name__ == '__main__':
                     print(proxy)
@@ -121,15 +128,16 @@ class ProxyPool:
         states = []
         for i in range(1, 4):
             try:
-                response = requests.get(
-                    url=urls[str(i)], headers=headers, timeout=100)
+                response = requests.get(url=urls[str(i)],
+                                        headers=headers,
+                                        timeout=100)
                 if str(response) == '<Response [200]>':
                     states.append('可用')
             except:
                 states.append('异常')
 
         end_time = time.time()
-        time_used = end_time-begin_time
+        time_used = end_time - begin_time
         return states, time_used
 
 
@@ -204,25 +212,37 @@ def main(mian):
 
 # 给其它程序留的接口,可获取一个可用的代理IP
 def proxies(num=1):
-    ram = random.randint(1,4)
+    ram = random.randint(1, 3+1) # 获取一个1~3的随机数
+    # 选择代理网站
+    proxies_full = []
     if ram == 1:
         proxies_full = ProxyPool.GetProxy_89ip()
     elif ram == 2:
         proxies_full = ProxyPool.GetProxy_ip3366()
     elif ram == 3:
         proxies_full = ProxyPool.GetProxy_kuaidaili()
-
+    else:
+        print('ERROR')
+    
     proxies = {}
-    key = random.sample(range(0, len(proxies_full)), num)
-    for i in range(num):
-        proxies[str(i)] = proxies_full[key[i]]
-    return proxies
+    key = random.sample(range(0, len(proxies_full)+1), num)
+    if num == 1:
+        agreement = re.match('https|http', proxies_full[0]).group()
+        agreement = agreement.upper()
+        proxies = {agreement : proxies_full[key[0]]}
+        return proxies
+    else:
+        for i in range(num):
+            proxies[str(i)] = proxies_full[key[i]]
+            return proxies
 
 
 # 保存所有可用的IP至文件
 def save_proxies():
 
-    with open('proxies.csv', 'w+', encoding='utf-8', newline='') as file:
+    with open('proxies.csv', 'w+', encoding='utf-8', newline='') as f:
+        file = csv.writer(f)
+        file.writerow([])
         pass
 
 if __name__ == '__main__':
