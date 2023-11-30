@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
+import os
+import csv
 import time
 import requests
 import random
@@ -14,7 +16,7 @@ urls = {'1': 'https://www.89ip.cn/',
 网址及页码规则
 url_1 = urls['1']+f'index_{page}.html'
 url_2 = urls['2']+f'?stype=1&page={page}'
-url_3 = urls['3']+f'inha/{page}/'
+url_3 = urls['3']+f'intr/{page}/'
 '''
 
 # 配置请求头
@@ -24,7 +26,6 @@ headers = {
 
 # 设置网站状态states为全局变量
 global states
-
 
 class ProxyPool:
     # 从89ip获取代理IP
@@ -44,7 +45,7 @@ class ProxyPool:
                 ip = cells[0].text.strip()
                 port = cells[1].text.strip()
 
-                # 89ip不显示协议,所以全部存为HTTP协议，有空再修
+                # 89ip不显示协议,所以全部记为HTTP协议
                 proxy = 'http://'+ip+':'+port
                 if __name__ == '__main__':
                     print(proxy)
@@ -55,7 +56,7 @@ class ProxyPool:
     # 从ip3366获取代理IP
     def GetProxy_ip3366():
         proxies = []
-        # 默认抓取第1-1页的IP
+        # 默认抓取第1-1页的IP，获取后续页码内容时报错，有空再修
         pages = 1
 
         for page in range(0, pages):
@@ -86,11 +87,11 @@ class ProxyPool:
     # 从kuaidaili获取代理IP
     def GetProxy_kuaidaili():
         proxies = []
-        # 默认抓取第1-1页的IP,获取后续页码内容时报错,有空再修
+        # 默认抓取第1-1页的IP，获取后续页码内容时报错，有空再修
         pages = 1+1
 
         for page in range(1, pages):
-            url = urls['3']+f'inha/{str(page)}/'
+            url = urls['3']+f'intr/{str(page)}/'
             response = requests.get(url=url, headers=headers)
             soup = BeautifulSoup(response.content, "html.parser")
             table = soup.find(
@@ -133,32 +134,31 @@ class ProxyPool:
 
 
 class Proxy:
-    def SelectProxyPool(select):
+    def TestProxy(proxies):
+        os.system('cls')
+        # 测试代理IP是否可用
+        for i in range(len(proxies)):
+            proxytest = {'test': proxies[i]}
+            try:
+                # 反正百度天天被爬，再添把火问题不大
+                response = requests.get(
+                    url='https://www.baidu.com/',
+                    proxies=proxytest,
+                    headers=headers,
+                    timeout=100)
+                print(proxies[i], '状态:可用', response)
+
+            except:
+                print(proxies[i], "失败",)
+
+
+    def GetProxy(select):
         if select == '1':
             proxies = ProxyPool.GetProxy_89ip()
         elif select == '2':
             proxies = ProxyPool.GetProxy_ip3366()
         elif select == '3':
             proxies = ProxyPool.GetProxy_kuaidaili()
-        return proxies
-
-    def TestProxy(proxies):
-        # 测试代理IP是否可用
-        for i in range(len(proxies)):
-            proxytest = {'test': proxies[i]}
-            try:
-                # 反正百度天天被爬，再添把火问题不大
-                baidu = 'https://www.baidu.com/'
-
-                response = requests.get(
-                    url=baidu, proxies=proxytest, headers=headers, timeout=100)
-                print(proxies[i], '状态:可用', response)
-
-            except:
-                print(proxies[i], "失败",)
-
-    def SelectProxy(select):
-        proxies = Proxy.SelectProxyPool(select)
         Proxy.TestProxy(proxies)
 
         print('=====================================================')
@@ -168,6 +168,7 @@ class Proxy:
 
 # 主界面
 def main(mian):
+    os.system('cls')
     print('=====================================================')
     print('         代理IP获取          作者：碧霄-凝落@Ninglog')
     print('    项目地址:https://github.com/BX-NL/ProxyPool')
@@ -188,9 +189,10 @@ def main(mian):
     select = str(input(' 请选择代理池：'))
     print('=====================================================')
     if select == '1' or select == '2' or select == '3':
-        Proxy.SelectProxy(select)
+        Proxy.GetProxy(select)
     elif select == '0':
         # 没想到吧，这个退出选项实际上是个重启按钮
+        os.system('cls')
         print(' 退出失败!')
         print()
         main('未初始化')
@@ -200,15 +202,8 @@ def main(mian):
         main('已初始化')
 
 
-# 给其它程序留的接口,可获取指定数量的可用的代理IP
-def Proxy(num=1):
-    if num > 10:
-        num = 10
-    elif num <= 0:
-        num = 1
-    else:pass
-    proxies = {}
-
+# 给其它程序留的接口,可获取一个可用的代理IP
+def proxies(num=1):
     ram = random.randint(1,4)
     if ram == 1:
         proxies_full = ProxyPool.GetProxy_89ip()
@@ -216,17 +211,19 @@ def Proxy(num=1):
         proxies_full = ProxyPool.GetProxy_ip3366()
     elif ram == 3:
         proxies_full = ProxyPool.GetProxy_kuaidaili()
-    
-    key_list = random.sample(range(1,10+1), num)
-    # print(key_list)
-    
-    key_re = 0
-    for key in key_list:
-        # print(key)
-        proxies[str(key_re)] = proxies_full[key]
-        key_re+=1
+
+    proxies = {}
+    key = random.sample(range(0, len(proxies_full)), num)
+    for i in range(num):
+        proxies[str(i)] = proxies_full[key[i]]
     return proxies
 
+
+# 保存所有可用的IP至文件
+def save_proxies():
+
+    with open('proxies.csv', 'w+', encoding='utf-8', newline='') as file:
+        pass
 
 if __name__ == '__main__':
     main('未初始化')

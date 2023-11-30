@@ -1,3 +1,3 @@
 import ProxyPool
-proxies = ProxyPool.Proxy(3)
+proxies = ProxyPool.proxies()
 print(proxies)
