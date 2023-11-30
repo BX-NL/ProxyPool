@@ -10,13 +10,17 @@
 
     import ProxyPool
         
-    #num为需要的IP数量，留空默认值为1
-
-    #一般情况下1<=num<=10，不建议过大，容易出点奇奇怪怪的bug
-        
-    proxies = ProxyPool.proxies(num=1)
+    proxies = ProxyPool.proxies(num=1, sel=0)
 
     print(proxies)
+
+    # num为需要的IP数量，留空默认值为1
+
+    # 一般情况下1<=num<=10，不建议过大，容易出点奇奇怪怪的bug
+
+    # sel为指定代理池，编号请参考代码
+    
+    # 留空使用默认值，随机获取一个IP
 
 
 **返回的proxies为字典形式**
