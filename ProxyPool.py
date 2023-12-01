@@ -20,6 +20,7 @@ urls = {
 url_1 = urls['1']+f'index_{page}.html'
 url_2 = urls['2']+f'?stype=1&page={page}'
 url_3 = urls['3']+f'intr/{page}/'
+url_3 = urls['3']+f'inha/{page}/'
 '''
 
 # 配置请求头
@@ -38,93 +39,95 @@ class ProxyPool:
     def GetProxy_89ip():
         proxies_list = []
         proxies_info = []
-        # 默认抓取第1-2页的IP
-        pages = 2
+        # 默认只抓取第1页的IP
+        pages = 1
 
         for page in range(0, pages):
-            url = urls['1'] + f'index_{str(page)}.html'
-            response = requests.get(url=url, headers=headers)
-            soup = BeautifulSoup(response.content, "html.parser")
-            table = soup.find("table", attrs={"class": "layui-table"})
+            url = urls['1'] + f'index_{str(page)}.html' # 设置网址
+            response = requests.get(url=url, headers=headers) # 发送请求
+            soup = BeautifulSoup(response.content, "html.parser") # 获取网页源码
+            table = soup.find("table", attrs={"class": "layui-table"}) # 定位指定表格
 
-            for row in table.tbody.find_all("tr"):
-                cells = row.find_all("td")
-                ip = cells[0].text.strip()
-                port = cells[1].text.strip()
+            for row in table.tbody.find_all("tr"): # 遍历表格每一行内容
+                cells = row.find_all("td") # 定位每行所有元素
+                ip = cells[0].text.strip() # 获取IP地址
+                port = cells[1].text.strip() # 获取端口
+                location = cells[2].text.strip() # 获取代理位置
+                operator = cells[3].text.strip() # 获取运营商
 
                 # 89ip不显示协议,所以全部记为HTTP协议
-                proxy = 'http://' + ip + ':' + port
+                proxy = 'http' + '://' + ip + ':' + port
                 if __name__ == '__main__':
                     print(proxy)
 
                 proxies_list.append(proxy)
-        return proxies_list
+                proxies_info_per = ['HTTP', ip, port, location, operator]
+                proxies_info.append(proxies_info_per)
+        return proxies_list, proxies_info
 
     # 从ip3366获取代理IP
     def GetProxy_ip3366():
         proxies_list = []
-        # 默认抓取第1-1页的IP，获取后续页码内容时报错，有空再修
+        proxies_info = []
+        # 默认抓取第1-1页的IP，获取后续页码内容时错误，修不了
         pages = 1
 
         for page in range(0, pages):
-            url = urls['2'] + f'?stype=1&page={str(page)}'
-            response = requests.get(url=url, headers=headers)
-            soup = BeautifulSoup(response.content, "html.parser")
-            table = soup.find(
-                "table", attrs={"class": "table table-bordered table-striped"}
-            )
+            url = urls['2'] + f'?stype=1&page={str(page)}' # 设置网址
+            response = requests.get(url=url, headers=headers) # 发送请求
+            soup = BeautifulSoup(response.content, "html.parser") # 获取网页源码
+            table = soup.find("table", attrs={"class": "table table-bordered table-striped"}) # 定位指定表格
 
-            for row in table.tbody.find_all("tr"):
-                cells = row.find_all("td")
-                ip = cells[0].text.strip()
-                port = cells[1].text.strip()
-                agreement = cells[3].text.strip()
+            for row in table.tbody.find_all("tr"): # 遍历表格每一行内容
+                cells = row.find_all("td") # 定位每行所有元素
+                ip = cells[0].text.strip() # 获取IP地址
+                port = cells[1].text.strip() # 获取端口
+                agreement = cells[3].text.strip() # 获取代理协议
+                location_operator = cells[4].text.strip() # 获取代理位置和运营商，格式:	高匿_XX省XX市XXX
+                location = re.search('(?<=_).+(?<=市)', location_operator).group() # 正则表达式匹配代理位置
+                operator = re.search('(?<=市).+', location_operator).group() # 正则表达式匹配运营商
 
-                # 位置：正则：_.+(?<=市)
-                # 运营商：正则：(?<=市).+
-
-                if agreement == 'HTTP':
-                    proxy = 'http://' + ip + ':' + port
-                elif agreement == 'HTTPS':
-                    proxy = 'https://' + ip + ':' + port
-                else:
-                    proxy = agreement + '://' + ip + ':' + port
-
+                proxy = agreement.lower() + '://' + ip + ':' + port
                 if __name__ == '__main__':
                     print(proxy)
+                
                 proxies_list.append(proxy)
-        return proxies_list
+                proxies_info_pre = [agreement, ip, port, location, operator]
+                proxies_info.append(proxies_info_pre)
+        return proxies_list, proxies_info
 
     # 从kuaidaili获取代理IP
     def GetProxy_kuaidaili():
         proxies_list = []
+        proxies_info = []
         # 默认抓取第1-1页的IP，获取后续页码内容时报错，有空再修
-        pages = 1 + 1
+        pages = 1
 
-        for page in range(1, pages):
-            url = urls['3'] + f'intr/{str(page)}/'
-            response = requests.get(url=url, headers=headers)
-            soup = BeautifulSoup(response.content, "html.parser")
-            table = soup.find(
-                "table", attrs={"class": "table table-b table-bordered table-striped"}
-            )
+        for page in range(1, pages+1):
+            url = urls['3'] + f'intr/{str(page)}/' # 设置网址:普通开放
+            # url = urls['3'] + f'inha/{str(page)}/' # 设置网址:高匿开放
+            response = requests.get(url=url, headers=headers) # 发送请求
+            soup = BeautifulSoup(response.content, "html.parser") # 获取网页源码
+            table = soup.find("table", attrs={"class": "table table-b table-bordered table-striped"}) # 定位指定表格
 
-            for row in table.tbody.find_all("tr"):
-                cells = row.find_all("td")
-                ip = cells[0].text.strip()
-                port = cells[1].text.strip()
-                agreement = cells[3].text.strip()
-                if agreement == 'HTTP':
-                    proxy = 'http://' + ip + ':' + port
-                elif agreement == 'HTTPS':
-                    proxy = 'https://' + ip + ':' + port
-                else:
-                    proxy = agreement + '://' + ip + ':' + port
+            for row in table.tbody.find_all("tr"): # 遍历表格每一行内容
+                cells = row.find_all("td") # 定位每行所有元素
+                ip = cells[0].text.strip() # 获取IP地址
+                port = cells[1].text.strip() # 获取端口
+                agreement = cells[3].text.strip() # 获取代理协议
+                location_operator = cells[4].text.strip() # 获取代理位置和运营商，格式:XX国 XX XX XX或XX省XX市 XX
+                operator = re.search('([^\s]+)$', location_operator).group() # 获取运营商
+                location_operator = re.sub(operator, '', location_operator) # 获取代理位置
+                location = re.sub('\s', '', location_operator)
 
+                proxy = agreement.lower() + '://' + ip + ':' + port
                 if __name__ == '__main__':
                     print(proxy)
+
                 proxies_list.append(proxy)
-        return proxies_list
+                proxies_info_pre = [agreement, ip, port, location, operator]
+                proxies_info.append(proxies_info_pre)
+        return proxies_list, proxies_info
 
     # 测试代理池网址是否正常
     def TestProxyPool():
@@ -167,18 +170,18 @@ class Proxy:
 
     def GetProxy(select):
         if select == '1':
-            proxies_list = ProxyPool.GetProxy_89ip()
+            proxies_list, proxies_info = ProxyPool.GetProxy_89ip()
         elif select == '2':
-            proxies_list = ProxyPool.GetProxy_ip3366()
+            proxies_list, proxies_info = ProxyPool.GetProxy_ip3366()
         elif select == '3':
-            proxies_list = ProxyPool.GetProxy_kuaidaili()
+            proxies_list, proxies_info = ProxyPool.GetProxy_kuaidaili()
         else:
             pass
 
         proxies = {}
         for i in range(len(proxies_list)):
             proxies[str(i)] = proxies_list[i]
-        return proxies
+        return proxies, proxies_info
 
 
 # 主界面
@@ -206,7 +209,8 @@ def main():
     select = str(input(' 请选择代理池：'))
     print('=====================================================')
     if select in ['1', '2', '3']:
-        proxies = Proxy.GetProxy(select)
+        proxies, ____ = Proxy.GetProxy(select) # 获取代理IP，抛弃代理信息
+        # print(____)
         os.system('cls')
         print('=====================================================')
         proxies = Proxy.TestProxy(proxies)
@@ -219,8 +223,7 @@ def main():
         print()
         mian = '未初始化'
     else:
-        print(' 请输入正确的数字')
-        print()
+        pass
 
 
 # 给其它程序留的接口,可获取一个或多个可用的代理IP
@@ -247,6 +250,8 @@ def proxies(num=1, sel=0):
 
 # 保存所有可用的IP至文件
 def save_proxies():
+    for i in range(1, 3+1):
+        proxies, proxies_info = Proxy.GetProxy(str(i))
     with open('proxies.csv', 'w+', encoding='utf-8', newline='') as f:
         file = csv.writer(f)
         file.writerow([])
