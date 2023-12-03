@@ -183,18 +183,18 @@ class ProxyPool: # 定义ProxyPool类
     def TestProxyPool():
         begin_time = time.time() # 开始记录时间
         global states # 设置网站状态为全局变量
-        states = [] 
         for i in range(1, 4): # 遍历所有网址
             try:
                 response = requests.get(url=urls[str(i)], headers=headers, timeout=100) # 向网站发送请求，默认超时时间为100
                 if str(response) == '<Response [200]>': # 判断网站是否可以访问
+                    print(i)
                     states[i-1] = ('可用') # 记录网站状态
             except:
                 states[i-1] = ('异常') # 记录网站状态
 
         end_time = time.time() # 记录结束时间
         time_used = end_time - begin_time # 统计用时
-        return states, time_used
+        return time_used
 
 
 class Proxy:
@@ -259,7 +259,7 @@ def main():
     print('=====================================================')
     if mian == '未初始化': # 检测程序是否第一次启动
         print(' 代理池初始化中。。。')
-        states, time_used = ProxyPool.TestProxyPool() # 测试代理网站状态
+        time_used = ProxyPool.TestProxyPool() # 测试代理网站状态
         print(' 初始化完成!用时:', time_used)
         print('=====================================================')
         mian = '已初始化'
