@@ -4,8 +4,9 @@ import os
 import re
 import csv
 import time
-import requests
 import random
+import requests
+from lxml import etree
 from bs4 import BeautifulSoup
 
 # 存放代理池网址及其编号
@@ -15,143 +16,197 @@ urls = {
     '3': 'https://www.kuaidaili.com/free/',
 }
 
-'''
-网址及页码规则
-url_1 = urls['1']+f'index_{page}.html'
-url_2 = urls['2']+f'?stype=1&page={page}'
-url_3 = urls['3']+f'intr/{page}/'
-url_3 = urls['3']+f'inha/{page}/'
-'''
-
 # 配置请求头
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
 }
 
-# 设置网站状态states为全局变量
-# global states
-states = ['未测试', '未测试', '未测试']
-mian = '未初始化'
+states = ['未测试', '未测试', '未测试'] # 设置网站初始状态
+mian = '未初始化' # 设置程序初始化状态mian，检测main()是否第一次启动
 
 
-class ProxyPool:
-    # 从89ip获取代理IP
-    def GetProxy_89ip():
-        proxies_list = []
-        proxies_info = []
-        # 默认只抓取第1页的IP
-        pages = 1
+class ProxyPool: # 定义ProxyPool类
 
-        for page in range(0, pages):
-            url = urls['1'] + f'index_{str(page)}.html' # 设置网址
-            response = requests.get(url=url, headers=headers) # 发送请求
-            soup = BeautifulSoup(response.content, "html.parser") # 获取网页源码
-            table = soup.find("table", attrs={"class": "layui-table"}) # 定位指定表格
+    def GetProxyPoolSource(url): # 传入网址，获取网页源码。闲着没事干，就算只有两行也要写个函数
+        response = requests.get(url=url, headers=headers) # 使用requests发送GET请求
+        source = BeautifulSoup(response.content, "html.parser") # 使用bs4解析网页源码   
+        return source # 返回网页源码
+    
+    class ProxyPool_89ip: # 定义89ip类
 
-            for row in table.tbody.find_all("tr"): # 遍历表格每一行内容
-                cells = row.find_all("td") # 定位每行所有元素
-                ip = cells[0].text.strip() # 获取IP地址
-                port = cells[1].text.strip() # 获取端口
-                location = cells[2].text.strip() # 获取代理位置
-                operator = cells[3].text.strip() # 获取运营商
+        def GetProxy_89ip_IP(): # 从89ip获取代理IP
+            proxies_list = [] # 定义列表用于保存IP
+            pages = 1 # 接口模式下默认只获取第1页的IP
 
-                # 89ip不显示协议,所以全部记为HTTP协议
-                proxy = 'http' + '://' + ip + ':' + port
-                if __name__ == '__main__':
-                    print(proxy)
+            for page in range(0, pages): # 遍历每一页的内容
+                url = urls['1'] + f'index_{str(page)}.html' # 设置对应页码的网址
+                source = ProxyPool.GetProxyPoolSource(url) #  获取网页源码
+                table = source.find("table", attrs={"class": "layui-table"}) # 定位目标表格
 
-                proxies_list.append(proxy)
-                proxies_info_per = ['HTTP', ip, port, location, operator]
-                proxies_info.append(proxies_info_per)
-        return proxies_list, proxies_info
+                for row in table.tbody.find_all("tr"): # 遍历表格每一行内容
+                    cells = row.find_all("td") # 定位每行所有元素
+                    ip = cells[0].text.strip() # 获取IP地址
+                    port = cells[1].text.strip() # 获取端口
 
-    # 从ip3366获取代理IP
-    def GetProxy_ip3366():
-        proxies_list = []
-        proxies_info = []
-        # 默认抓取第1-1页的IP，获取后续页码内容时错误，修不了
-        pages = 1
+                    proxy = 'http' + '://' + ip + ':' + port # 89ip不显示协议,所以全部记为HTTP协议
+                    proxies_list.append(proxy) # 保存每个IP
 
-        for page in range(0, pages):
-            url = urls['2'] + f'?stype=1&page={str(page)}' # 设置网址
-            response = requests.get(url=url, headers=headers) # 发送请求
-            soup = BeautifulSoup(response.content, "html.parser") # 获取网页源码
-            table = soup.find("table", attrs={"class": "table table-bordered table-striped"}) # 定位指定表格
+            return proxies_list
+        
+        def GetProxy_89ip_Info(): # 从89ip获取信息
+            proxies_info = [] # 定义列表用于保存信息
+            pages = 1 # 全量模式下默认获取第1~10页的数据
+            for page in range(0, pages): # 遍历每一页的内容
+                url = urls['1'] + f'index_{str(page)}.html' # 设置对应页码的网址
+                source = ProxyPool.GetProxyPoolSource(url) # 获取网页源码
+                table = source.find("table", attrs={"class": "layui-table"}) # 定位目标表格
 
-            for row in table.tbody.find_all("tr"): # 遍历表格每一行内容
-                cells = row.find_all("td") # 定位每行所有元素
-                ip = cells[0].text.strip() # 获取IP地址
-                port = cells[1].text.strip() # 获取端口
-                agreement = cells[3].text.strip() # 获取代理协议
-                location_operator = cells[4].text.strip() # 获取代理位置和运营商，格式:	高匿_XX省XX市XXX
-                location = re.search('(?<=_).+(?<=市)', location_operator).group() # 正则表达式匹配代理位置
-                operator = re.search('(?<=市).+', location_operator).group() # 正则表达式匹配运营商
+                html = etree.HTML(str(source)) # 用lxml解析网页
+                title = html.findtext('.//title') # 获取完整网页标题，什么大聪明把<title>写<body>里，xpath写半天不如直接findtext
+                title = re.search('[^_]+$', title).group() # 正则表达式修改网页标题
 
-                proxy = agreement.lower() + '://' + ip + ':' + port
-                if __name__ == '__main__':
-                    print(proxy)
-                
-                proxies_list.append(proxy)
-                proxies_info_pre = [agreement, ip, port, location, operator]
-                proxies_info.append(proxies_info_pre)
-        return proxies_list, proxies_info
+                for row in table.tbody.find_all("tr"): # 遍历表格每一行内容
+                    cells = row.find_all("td") # 定位每行所有元素
+                    ip = cells[0].text.strip() # 获取IP地址
+                    port = cells[1].text.strip() # 获取端口
+                    location = cells[2].text.strip() # 获取代理位置
+                    operator = cells[3].text.strip() # 获取运营商
+                    time = cells[4].text.strip() # 获取时间
 
-    # 从kuaidaili获取代理IP
-    def GetProxy_kuaidaili():
-        proxies_list = []
-        proxies_info = []
-        # 默认抓取第1-1页的IP，获取后续页码内容时报错，有空再修
-        pages = 1
+                    proxies_info.append([title, 'HTTP', ip, port, location, operator, time]) # 记录每行信息
 
-        for page in range(1, pages+1):
-            url = urls['3'] + f'intr/{str(page)}/' # 设置网址:普通开放
-            # url = urls['3'] + f'inha/{str(page)}/' # 设置网址:高匿开放
-            response = requests.get(url=url, headers=headers) # 发送请求
-            soup = BeautifulSoup(response.content, "html.parser") # 获取网页源码
-            table = soup.find("table", attrs={"class": "table table-b table-bordered table-striped"}) # 定位指定表格
+            return proxies_info
+        
+    class ProxyPool_ip3366: # 定义ip3366类
 
-            for row in table.tbody.find_all("tr"): # 遍历表格每一行内容
-                cells = row.find_all("td") # 定位每行所有元素
-                ip = cells[0].text.strip() # 获取IP地址
-                port = cells[1].text.strip() # 获取端口
-                agreement = cells[3].text.strip() # 获取代理协议
-                location_operator = cells[4].text.strip() # 获取代理位置和运营商，格式:XX国 XX XX XX或XX省XX市 XX
-                operator = re.search('([^\s]+)$', location_operator).group() # 获取运营商
-                location_operator = re.sub(operator, '', location_operator) # 获取代理位置
-                location = re.sub('\s', '', location_operator)
+        def GetProxy_ip3366_IP(): # 从ip3366获取代理IP
+            proxies_list = [] # 定义列表用于保存IP
+            pages = 1 # 接口模式下默认获取第1-1页的IP，获取后续页码内容时错误，修不了
 
-                proxy = agreement.lower() + '://' + ip + ':' + port
-                if __name__ == '__main__':
-                    print(proxy)
+            for page in range(0, pages): # 遍历每一页的内容
+                url = urls['2'] + f'?stype=1&page={str(page)}' # 设置网址
+                source = ProxyPool.GetProxyPoolSource(url) # 获取网页源码
+                table = source.find("table", attrs={"class": "table table-bordered table-striped"}) # 定位指定表格
 
-                proxies_list.append(proxy)
-                proxies_info_pre = [agreement, ip, port, location, operator]
-                proxies_info.append(proxies_info_pre)
-        return proxies_list, proxies_info
+                for row in table.tbody.find_all("tr"): # 遍历表格每一行内容
+                    cells = row.find_all("td") # 定位每行所有元素
+                    ip = cells[0].text.strip() # 获取IP地址
+                    port = cells[1].text.strip() # 获取端口
+                    agreement = cells[3].text.strip() # 获取代理协议
+
+                    proxy = agreement.lower() + '://' + ip + ':' + port # 代理IP=协议(小写)+ip+端口
+                    proxies_list.append(proxy) # 保存每个IP
+
+            return proxies_list
+        
+        def GetProxy_ip3366_Info(): # 从ip3366获取信息
+            proxies_info = [] # 定义列表用于保存信息
+            pages = 1 # 全量模式下默认抓取第1-1页的数据，获取后续页码内容时错误，修不了
+
+            for page in range(0, pages): # 遍历每一页的内容
+                url = urls['2'] + f'?stype=1&page={str(page)}' # 设置网址
+                source = ProxyPool.GetProxyPoolSource(url) # 获取网页源码
+                table = source.find("table", attrs={"class": "table table-bordered table-striped"}) # 定位指定表格
+
+                html = etree.HTML(str(source)) # 用lxml解析网页
+                title = html.xpath('/html/head/title')[0].text # 使用XPath获取完整标题
+                title = re.sub('\s.+$', '', title) # 正则表达式修改网页标题
+
+                for row in table.tbody.find_all("tr"): # 遍历表格每一行内容
+                    cells = row.find_all("td") # 定位每行所有元素
+                    ip = cells[0].text.strip() # 获取IP地址
+                    port = cells[1].text.strip() # 获取端口
+                    agreement = cells[3].text.strip() # 获取代理协议
+                    location_operator = cells[4].text.strip() # 获取代理位置和运营商，格式:	高匿_XX省XX市XXX
+                    location = re.search('(?<=_).+(?<=市)', location_operator).group() # 正则表达式匹配代理位置
+                    operator = re.search('(?<=市).+', location_operator).group() # 正则表达式匹配运营商
+                    time = cells[6].text.strip() # 获取时间
+
+                    proxies_info.append([title, agreement, ip, port, location, operator, time]) # 记录每行信息
+
+            return proxies_info
+           
+    class ProxyPool_kuaidaili: # 定义kuaidaili类
+
+        def GetProxy_kuaidaili_IP(): # 从kuaidaili获取代理IP
+
+            proxies_list = [] # 定义列表用于保存IP
+            pages = 1 # 接口模式下默认获取第1-1页的IP，获取后续页码内容时报错，有空再修
+
+            for page in range(1, pages+1): # 遍历每一页的内容
+                url = urls['3'] + f'intr/{str(page)}/' # 设置对应页码的网址:普通开放
+                # url = urls['3'] + f'inha/{str(page)}/' # 设置对应页码的网址:高匿开放
+                source = ProxyPool.GetProxyPoolSource(url) # 获取网页源码
+                table = source.find("table", attrs={"class": "table table-b table-bordered table-striped"}) # 定位指定表格
+
+                for row in table.tbody.find_all("tr"): # 遍历表格每一行内容
+                    cells = row.find_all("td") # 定位每行所有元素
+                    ip = cells[0].text.strip() # 获取IP地址
+                    port = cells[1].text.strip() # 获取端口
+                    agreement = cells[3].text.strip() # 获取代理协议
+
+                    proxy = agreement.lower() + '://' + ip + ':' + port # 代理IP=协议(小写)+ip+端口
+                    proxies_list.append(proxy) # 保存每个IP
+
+            return proxies_list
+        
+        def GetProxy_kuaidaili_Info(): # 从kuaidaili获取信息
+
+            proxies_info = [] # 定义列表用于保存信息
+            pages = 1 # 全量模式下默认或取第1-1页的信息，获取后续页码内容时报错，有空再修
+
+            for page in range(1, pages+1): # 遍历每一页的内容
+                url = urls['3'] + f'intr/{str(page)}/' # 设置对应页码的网址:普通开放
+                # url = urls['3'] + f'inha/{str(page)}/' # 设置对应页码的网址:高匿开放
+                source = ProxyPool.GetProxyPoolSource(url) # 获取网页源码
+                table = source.find("table", attrs={"class": "table table-b table-bordered table-striped"}) # 定位指定表格
+
+                title = source.title.string # 好烦啊不想用lxml了
+                title = re.search('[^-\s]+$', title).group() # 正则表达式修改网页标题
+
+                for row in table.tbody.find_all("tr"): # 遍历表格每一行内容
+                    cells = row.find_all("td") # 定位每行所有元素
+                    ip = cells[0].text.strip() # 获取IP地址
+                    port = cells[1].text.strip() # 获取端口
+                    agreement = cells[3].text.strip() # 获取代理协议
+                    location_operator = cells[4].text.strip() # 获取代理位置和运营商，格式:XX国 XX XX XX或XX省XX市 XX
+                    operator = re.search('([^\s]+)$', location_operator).group() # 获取运营商
+                    location = re.sub(operator, '', location_operator) # 正则表达式匹配运营商并删除
+                    location = re.sub('\s', '', location) # 正则表达式删除空格以获取代理位置
+                    time = cells[6].text.strip() # 获取时间
+                    time = re.sub('-', '/', time) # 使用正则表达式格式化时间
+
+                    proxies_info.append([title, agreement, ip, port, location, operator, time]) # 记录每行信息
+
+            return proxies_info
 
     # 测试代理池网址是否正常
     def TestProxyPool():
-        begin_time = time.time()
-        global states
-        states = []
-        for i in range(1, 4):
+        begin_time = time.time() # 开始记录时间
+        global states # 设置网站状态为全局变量
+        states = [] 
+        for i in range(1, 4): # 遍历所有网址
             try:
-                response = requests.get(url=urls[str(i)], headers=headers, timeout=100)
-                if str(response) == '<Response [200]>':
-                    states.append('可用')
+                response = requests.get(url=urls[str(i)], headers=headers, timeout=100) # 向网站发送请求，默认超时时间为100
+                if str(response) == '<Response [200]>': # 判断网站是否可以访问
+                    states[i-1] = ('可用') # 记录网站状态
             except:
-                states.append('异常')
+                states[i-1] = ('异常') # 记录网站状态
 
-        end_time = time.time()
-        time_used = end_time - begin_time
+        end_time = time.time() # 记录结束时间
+        time_used = end_time - begin_time # 统计用时
         return states, time_used
 
 
 class Proxy:
-    def TestProxy(proxies):
-        # 测试代理IP是否可用并输出至控制台
-        for i in range(len(proxies)):
-            proxies_test = {str(i) : proxies[str(i)]}
+
+    def TestProxy(proxies): # 测试代理IP是否可用并输出至控制台
+
+        for i in range(len(proxies)): # 遍历所有IP
+            agreement = re.search('https|http', proxies[str[i]]) # 获取代理IP的协议
+            agreement = agreement.upper() # 将协议转为大写，作为键值
+            proxies_test = {agreement : proxies[str(i)]} # 配置代理IP
+
             try:
                 # 反正百度天天被爬，再添把火问题不大
                 response = requests.get(
@@ -160,42 +215,52 @@ class Proxy:
                     headers=headers,
                     timeout=100,
                 )
-                proxty_status = '状态:可用'
+                proxty_status = '状态:可用' # 记录代理IP状态
             except:
-                proxty_status = '失败'
+                proxty_status = '失败' # 记录代理IP状态
+                # del proxies[str[i]] # 移除不可用的IP，接口模式下工作不正常，暂时注释
+            
+            time.sleep(100) # 晚安，玛卡巴卡
 
-            if __name__ == '__main__':
-                print(proxies[str(i)], proxty_status, response)
+            if __name__ == '__main__': # 判断是否作为主程序在执行
+                print(proxies[str(i)], proxty_status, response) # 向控制台输出IP与测试结果
         return proxies
 
     def GetProxy(select):
         if select == '1':
-            proxies_list, proxies_info = ProxyPool.GetProxy_89ip()
+            proxies_list = ProxyPool.ProxyPool_89ip.GetProxy_89ip_IP()
         elif select == '2':
-            proxies_list, proxies_info = ProxyPool.GetProxy_ip3366()
+            proxies_list = ProxyPool.ProxyPool_ip3366.GetProxy_ip3366_IP()
         elif select == '3':
-            proxies_list, proxies_info = ProxyPool.GetProxy_kuaidaili()
-        else:
-            pass
+            proxies_list = ProxyPool.ProxyPool_kuaidaili.GetProxy_kuaidaili_IP()
 
         proxies = {}
         for i in range(len(proxies_list)):
             proxies[str(i)] = proxies_list[i]
-        return proxies, proxies_info
+        return proxies
+        
+    def GetProxyInfo(): # 获取全部代理信息，期末大作业专用
+        proxies_info_1 = ProxyPool.GetProxy_89ip(info=True)
+        proxies_info_2 = ProxyPool.GetProxy_ip3366(info=True)
+        proxies_info_3 = ProxyPool.GetProxy_kuaidaili(info=True)
+        
+        proxies_info = proxies_info_1 + proxies_info_2 + proxies_info_3
+
+        return proxies_info
 
 
 # 主界面
 def main():
-    global states
-    global mian
-    os.system('cls')
+    global states # 设置网站状态states为全局变量
+    global mian # 设置程序初始化状态mian为全局变量
+    # os.system('cls') # 向终端发送命令:cls，清屏
     print('=====================================================')
     print('         代理IP获取          作者：碧霄-凝落@Ninglog')
     print('    项目地址:https://github.com/BX-NL/ProxyPool')
     print('=====================================================')
-    if mian == '未初始化':
+    if mian == '未初始化': # 检测程序是否第一次启动
         print(' 代理池初始化中。。。')
-        states, time_used = ProxyPool.TestProxyPool()
+        states, time_used = ProxyPool.TestProxyPool() # 测试代理网站状态
         print(' 初始化完成!用时:', time_used)
         print('=====================================================')
         mian = '已初始化'
@@ -209,55 +274,71 @@ def main():
     select = str(input(' 请选择代理池：'))
     print('=====================================================')
     if select in ['1', '2', '3']:
-        proxies, ____ = Proxy.GetProxy(select) # 获取代理IP，抛弃代理信息
-        # print(____)
-        os.system('cls')
-        print('=====================================================')
-        proxies = Proxy.TestProxy(proxies)
-        print('=====================================================')
-        input('按Enter键继续')
-    elif select == '0':
-        # 没想到吧，这个退出选项实际上是个重启按钮
-        os.system('cls')
+        if states[int(select)-1] == '失败':
+            print('=====================================================')
+            print('服务器或网络异常')
+            input('按Enter继续')
+            mian = '未初始化'
+        else:
+            proxies = Proxy.GetProxy(select) # 获取代理IP
+            os.system('cls')
+            print('=====================================================')
+            proxies = Proxy.TestProxy(proxies)
+            print('=====================================================')
+            input('按Enter键继续')
+    elif select == '0': # 没想到吧，这个退出选项实际上是个重启选项
         print(' 退出失败!')
-        print()
         mian = '未初始化'
-    else:
+    else: # 测试用端口
+        aaa = ProxyPool.ProxyPool_kuaidaili.GetProxy_kuaidaili_Info()
+        print(aaa)
         pass
 
 
 # 给其它程序留的接口,可获取一个或多个可用的代理IP
-def proxies(num=1, sel=0):
+def proxies(num=1, sel=0): # 默认数量为1，sel默认为0(随机选择代理网站)
+    proxies_full = {} # 这行删掉会报错，我也不知道为什么
     if sel == 0:
-        key = random.sample(['1', '2', '3'], 1)
-        proxies_full = {}
-        proxies_full = Proxy.GetProxy(key[0])
+        key = random.sample(['1', '2', '3'], 1) # 随机选择一个代理网站
+        proxies_full = Proxy.GetProxy(key[0]) # 从随机网站中获取一批代理IP
     else:
-        proxies_full = Proxy.GetProxy(str(sel))
+        proxies_full = Proxy.GetProxy(str(sel)) # 从指定的网站中获取一批代理IP
 
     proxies = {}
-    key = random.sample(range(0, len(proxies_full) + 1), num)
-    if num == 1:
-        agreement = re.match('https|http', proxies_full['0']).group()
-        agreement = agreement.upper()
-        proxies[agreement] = proxies_full[str(key[0])]
+    key = random.sample(range(0, len(proxies_full) + 1), num) # 随机取一个或多个数
+    if num == 1: # 随机挑选一个幸运IP
+        agreement = re.match('https|http', proxies_full[key['0']]).group()  # 获取代理IP的协议
+        agreement = agreement.upper() # 将协议转为大写，作为键值
+        proxies[agreement] = proxies_full[str(key[0])] # 记录代理IP
     else:
-        for i in range(num):
-            proxies[str(i)] = proxies_full[str(key[i])]
+        for i in range(num): # 遍历所有IP
+            proxies[str(i)] = proxies_full[str(key[i])] # 记录代理IP
 
     return proxies
 
 
 # 保存所有可用的IP至文件
-def save_proxies():
-    for i in range(1, 3+1):
-        proxies, proxies_info = Proxy.GetProxy(str(i))
-    with open('proxies.csv', 'w+', encoding='utf-8', newline='') as f:
-        file = csv.writer(f)
-        file.writerow([])
+def SaveProxiesInfo(file=''):
+    if file == '':
         pass
+    else:
+        with open(file, 'r+', encoding='utf-8', newline='') as file:
+            if file.readline():
+                pass
+            else:
+                writer = csv.writer(file)
+                writer.writerow(['来源', '协议', 'IP', '端口', '代理位置', '运营商'])
+            file.close()
+
+        for i in range(1, 3+1):
+            proxies_info = Proxy.GetProxy(str(i), info=True)
+        with open(file, 'a+', encoding='utf-8', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(proxies_info)
+            file.close()
 
 
-if __name__ == '__main__':
-    while True:
-        main()
+
+if __name__ == '__main__': # 只有运行本文件时才执行
+    while True: # 不想做退出选项的原因
+        main() # 显示界面
