@@ -54,7 +54,7 @@ class ProxyPool: # 定义ProxyPool类
         
         def GetProxy_89ip_Info(): # 从89ip获取信息
             proxies_info = [] # 定义列表用于保存信息
-            pages = 1 # 全量模式下默认获取第1~10页的数据
+            pages = 6 # 全量模式下默认获取第1~6页的数据
             for page in range(0, pages): # 遍历每一页的内容
                 url = urls['1'] + f'index_{str(page)}.html' # 设置对应页码的网址
                 source = ProxyPool.GetProxyPoolSource(url) # 获取网页源码
