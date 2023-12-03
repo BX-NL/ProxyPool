@@ -2,7 +2,6 @@
 # -*- coding: UTF-8 -*-
 import os
 import re
-import csv
 import time
 import random
 import requests
@@ -240,9 +239,9 @@ class Proxy:
         return proxies
         
     def GetProxyInfo(): # 获取全部代理信息，期末大作业专用
-        proxies_info_1 = ProxyPool.GetProxy_89ip(info=True)
-        proxies_info_2 = ProxyPool.GetProxy_ip3366(info=True)
-        proxies_info_3 = ProxyPool.GetProxy_kuaidaili(info=True)
+        proxies_info_1 = ProxyPool.ProxyPool_89ip.GetProxy_89ip_Info()
+        proxies_info_2 = ProxyPool.ProxyPool_ip3366.GetProxy_ip3366_Info()
+        proxies_info_3 = ProxyPool.ProxyPool_kuaidaili.GetProxy_kuaidaili_Info()
         
         proxies_info = proxies_info_1 + proxies_info_2 + proxies_info_3
 
@@ -253,7 +252,7 @@ class Proxy:
 def main():
     global states # 设置网站状态states为全局变量
     global mian # 设置程序初始化状态mian为全局变量
-    # os.system('cls') # 向终端发送命令:cls，清屏
+    os.system('cls') # 向终端发送命令:cls，清屏
     print('=====================================================')
     print('         代理IP获取          作者：碧霄-凝落@Ninglog')
     print('    项目地址:https://github.com/BX-NL/ProxyPool')
@@ -290,8 +289,6 @@ def main():
         print(' 退出失败!')
         mian = '未初始化'
     else: # 测试用端口
-        aaa = ProxyPool.ProxyPool_kuaidaili.GetProxy_kuaidaili_Info()
-        print(aaa)
         pass
 
 
@@ -307,7 +304,7 @@ def proxies(num=1, sel=0): # 默认数量为1，sel默认为0(随机选择代理
     proxies = {}
     key = random.sample(range(0, len(proxies_full) + 1), num) # 随机取一个或多个数
     if num == 1: # 随机挑选一个幸运IP
-        agreement = re.match('https|http', proxies_full[key['0']]).group()  # 获取代理IP的协议
+        agreement = re.match('https|http', proxies_full[str(key[0])]).group()  # 获取代理IP的协议
         agreement = agreement.upper() # 将协议转为大写，作为键值
         proxies[agreement] = proxies_full[str(key[0])] # 记录代理IP
     else:
@@ -315,28 +312,6 @@ def proxies(num=1, sel=0): # 默认数量为1，sel默认为0(随机选择代理
             proxies[str(i)] = proxies_full[str(key[i])] # 记录代理IP
 
     return proxies
-
-
-# 保存所有可用的IP至文件
-def SaveProxiesInfo(file=''):
-    if file == '':
-        pass
-    else:
-        with open(file, 'r+', encoding='utf-8', newline='') as file:
-            if file.readline():
-                pass
-            else:
-                writer = csv.writer(file)
-                writer.writerow(['来源', '协议', 'IP', '端口', '代理位置', '运营商'])
-            file.close()
-
-        for i in range(1, 3+1):
-            proxies_info = Proxy.GetProxy(str(i), info=True)
-        with open(file, 'a+', encoding='utf-8', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(proxies_info)
-            file.close()
-
 
 
 if __name__ == '__main__': # 只有运行本文件时才执行
