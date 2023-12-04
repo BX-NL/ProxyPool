@@ -117,8 +117,14 @@ class ProxyPool: # 定义ProxyPool类
                     port = cells[1].text.strip() # 获取端口
                     agreement = cells[3].text.strip() # 获取代理协议
                     location_operator = cells[4].text.strip() # 获取代理位置和运营商，格式:	高匿_XX省XX市XXX
-                    location = re.search('(?<=_).+(?<=市)', location_operator).group() # 正则表达式匹配代理位置
-                    operator = re.search('(?<=市).+', location_operator).group() # 正则表达式匹配运营商
+                    try:
+                        location = re.search('(?<=_).+(?<=市)', location_operator).group() # 正则表达式匹配代理位置
+                    except:
+                        location = location_operator
+                    try:
+                        operator = re.search('(?<=市).+', location_operator).group() # 正则表达式匹配运营商
+                    except:
+                        operator = 'None'
                     time = cells[6].text.strip() # 获取时间
 
                     proxies_info.append([title, agreement, ip, port, location, operator, time]) # 记录每行信息
