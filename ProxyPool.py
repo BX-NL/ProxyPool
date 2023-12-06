@@ -136,7 +136,7 @@ class ProxyPool: # 定义ProxyPool类
         def GetProxy_kuaidaili_IP(): # 从kuaidaili获取代理IP
 
             proxies_list = [] # 定义列表用于保存IP
-            pages = 1 # 接口模式下默认获取第1-1页的IP，获取后续页码内容时报错，有空再修
+            pages = 3 # 接口模式下默认获取第1-1页的IP，获取后续页码内容时报错，有空再修
 
             for page in range(1, pages+1): # 遍历每一页的内容
                 url = urls['3'] + f'intr/{str(page)}/' # 设置对应页码的网址:普通开放
@@ -193,7 +193,6 @@ class ProxyPool: # 定义ProxyPool类
             try:
                 response = requests.get(url=urls[str(i)], headers=headers, timeout=100) # 向网站发送请求，默认超时时间为100
                 if str(response) == '<Response [200]>': # 判断网站是否可以访问
-                    print(i)
                     states[i-1] = ('可用') # 记录网站状态
             except:
                 states[i-1] = ('异常') # 记录网站状态
@@ -206,11 +205,11 @@ class ProxyPool: # 定义ProxyPool类
 class Proxy:
 
     def TestProxy(proxies): # 测试代理IP是否可用并输出至控制台
-
+        global mian
         for i in range(len(proxies)): # 遍历所有IP
-            agreement = re.search('https|http', proxies[str[i]]) # 获取代理IP的协议
+            agreement = re.search('https|http', proxies[str(i)]).group() # 获取代理IP的协议
             agreement = agreement.upper() # 将协议转为大写，作为键值
-            proxies_test = {agreement : proxies[str(i)]} # 配置代理IP
+            proxies_test = {'HTTP' : proxies[str(i)]} # 配置代理IP
 
             try:
                 # 反正百度天天被爬，再添把火问题不大
@@ -225,9 +224,8 @@ class Proxy:
                 proxty_status = '失败' # 记录代理IP状态
                 # del proxies[str[i]] # 移除不可用的IP，接口模式下工作不正常，暂时注释
             
-            time.sleep(100) # 晚安，玛卡巴卡
-
-            if __name__ == '__main__': # 判断是否作为主程序在执行
+            # time.sleep(1) # 晚安，玛卡巴卡
+            if mian == '已初始化': # 判断是否作为主程序在执行 
                 print(proxies[str(i)], proxty_status, response) # 向控制台输出IP与测试结果
         return proxies
 
@@ -238,7 +236,6 @@ class Proxy:
             proxies_list = ProxyPool.ProxyPool_ip3366.GetProxy_ip3366_IP()
         elif select == '3':
             proxies_list = ProxyPool.ProxyPool_kuaidaili.GetProxy_kuaidaili_IP()
-
         proxies = {}
         for i in range(len(proxies_list)):
             proxies[str(i)] = proxies_list[i]
@@ -286,7 +283,7 @@ def main():
             mian = '未初始化'
         else:
             proxies = Proxy.GetProxy(select) # 获取代理IP
-            os.system('cls')
+            # os.system('cls')
             print('=====================================================')
             proxies = Proxy.TestProxy(proxies)
             print('=====================================================')
