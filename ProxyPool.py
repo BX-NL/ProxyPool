@@ -215,7 +215,11 @@ class ProxyPool: # 定义ProxyPool类
 
 class Proxy:
 
+<<<<<<< HEAD
     def TestProxy(proxies): # 测试代理IP是否可用
+=======
+    def TestProxy(proxies): # 测试代理IP是否可用并输出至控制台
+>>>>>>> ac967e27f7caa4c3903474b85902ffbea5afc1fa
         global mian
         for i in range(len(proxies)): # 遍历所有IP
             agreement = re.search('https|http', proxies[str(i)]).group() # 获取代理IP的协议
@@ -241,7 +245,11 @@ class Proxy:
         return proxies
 
 
+<<<<<<< HEAD
     def TestProxy_True(proxies): # 测试代理IP是否可用(真实版)，九个IP有十个不能用
+=======
+    def TestProxy_True(proxies): # 测试代理IP是否可用并输出至控制台
+>>>>>>> ac967e27f7caa4c3903474b85902ffbea5afc1fa
         global mian
         for i in range(len(proxies)): # 遍历所有IP
             agreement = re.search('https|http', proxies[str(i)]).group() # 获取代理IP的协议
